@@ -389,6 +389,47 @@
     }
 
     .final-score span { color: var(--muted); font-size: 13px; }
+    .missed-review {
+      margin: 0 0 24px;
+      text-align: left;
+    }
+    .missed-review h2 {
+      margin-bottom: 13px;
+      font-size: 19px;
+    }
+    .missed-review-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .missed-review-item {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface-soft);
+    }
+    .missed-review-item h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    .missed-review-item p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .missed-review-item strong { color: var(--ink); }
+    .no-missed-answers {
+      margin: 0;
+      padding: 14px;
+      border: 1px solid var(--hud-line);
+      border-radius: 10px;
+      background: var(--surface-soft);
+      color: var(--green);
+      font-weight: 650;
+    }
     .results .next-button { width: 100%; }
     .results .copy-button {
       margin-bottom: 10px;
@@ -477,6 +518,11 @@
           <strong id="final-score">0 / 10</strong>
           <span>correct answers</span>
         </div>
+        <section class="missed-review" aria-labelledby="review-heading">
+          <h2 id="review-heading">Review your answers</h2>
+          <p class="no-missed-answers hidden" id="no-missed-answers">No missed answers — you got every question right!</p>
+          <ol class="missed-review-list" id="missed-review-list" role="list"></ol>
+        </section>
         <button class="next-button copy-button" id="copy-result-button" type="button">Copy result</button>
         <p class="copy-status" id="copy-status" role="status" aria-live="polite" aria-atomic="true"></p>
         <button class="next-button" id="restart-button" type="button">Play again ↻</button>
@@ -592,6 +638,7 @@
       let current = 0;
       let score = 0;
       let answered = false;
+      let missedAnswers = [];
 
       function renderQuestion() {
         const item = missionQuestions[current];
@@ -625,6 +672,14 @@
         const item = missionQuestions[current];
         const buttons = [...answers.querySelectorAll(".answer")];
         const isCorrect = selected === item.answer;
+        if (!isCorrect) {
+          missedAnswers.push({
+            question: item.question,
+            selected: item.options[selected],
+            correct: item.options[item.answer],
+            fact: item.fact
+          });
+        }
         progressTrack.setAttribute("aria-valuenow", String(current + 1));
         progressFill.style.width = `${((current + 1) / missionQuestions.length) * 100}%`;
 
@@ -654,6 +709,29 @@
         progressFill.style.width = "100%";
         document.getElementById("final-score").textContent = `${score} / ${missionQuestions.length}`;
         copyStatus.textContent = "";
+        const missedReviewList = document.getElementById("missed-review-list");
+        const noMissedAnswers = document.getElementById("no-missed-answers");
+        missedReviewList.replaceChildren();
+        noMissedAnswers.classList.toggle("hidden", missedAnswers.length > 0);
+        missedReviewList.classList.toggle("hidden", missedAnswers.length === 0);
+        missedAnswers.forEach((missedAnswer) => {
+          const item = document.createElement("li");
+          item.className = "missed-review-item";
+          const question = document.createElement("h3");
+          question.textContent = missedAnswer.question;
+          const addDetail = (label, value) => {
+            const detail = document.createElement("p");
+            const labelElement = document.createElement("strong");
+            labelElement.textContent = label;
+            detail.append(labelElement, ` ${value}`);
+            item.append(detail);
+          };
+          item.append(question);
+          addDetail("Your answer:", missedAnswer.selected);
+          addDetail("Correct answer:", missedAnswer.correct);
+          addDetail("Did you know?", missedAnswer.fact);
+          missedReviewList.append(item);
+        });
 
         let emoji;
         let title;
@@ -714,6 +792,7 @@
         missionQuestions = shuffleQuestions(missionQuestions);
         current = 0;
         score = 0;
+        missedAnswers = [];
         scoreDisplay.textContent = "0";
         scoreFooter.textContent = "0";
         resultsScreen.classList.add("hidden");
