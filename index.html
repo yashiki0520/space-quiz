@@ -390,6 +390,18 @@
 
     .final-score span { color: var(--muted); font-size: 13px; }
     .results .next-button { width: 100%; }
+    .results .copy-button {
+      margin-bottom: 10px;
+      border-color: var(--line);
+      background: var(--surface-soft);
+      color: var(--purple);
+    }
+    .copy-status {
+      min-height: 24px;
+      margin: 10px 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
     .hidden { display: none !important; }
 
     .bottom-note {
@@ -465,6 +477,8 @@
           <strong id="final-score">0 / 10</strong>
           <span>correct answers</span>
         </div>
+        <button class="next-button copy-button" id="copy-result-button" type="button">Copy result</button>
+        <p class="copy-status" id="copy-status" role="status" aria-live="polite" aria-atomic="true"></p>
         <button class="next-button" id="restart-button" type="button">Play again ↻</button>
       </div>
     </section>
@@ -559,6 +573,8 @@
       const scoreFooter = document.getElementById("score-footer");
       const quizScreen = document.getElementById("quiz-screen");
       const resultsScreen = document.getElementById("results-screen");
+      const copyResultButton = document.getElementById("copy-result-button");
+      const copyStatus = document.getElementById("copy-status");
 
       let current = 0;
       let score = 0;
@@ -624,6 +640,7 @@
         progressTrack.setAttribute("aria-valuenow", String(questions.length));
         progressFill.style.width = "100%";
         document.getElementById("final-score").textContent = `${score} / ${questions.length}`;
+        copyStatus.textContent = "";
 
         let emoji;
         let title;
@@ -653,6 +670,21 @@
         resultsScreen.classList.remove("hidden");
         document.getElementById("restart-button").focus();
       }
+
+      copyResultButton.addEventListener("click", async () => {
+        const shareText = `I scored ${score} out of ${questions.length} on Orbit Quiz!`;
+        if (!navigator.clipboard?.writeText) {
+          copyStatus.textContent = "Clipboard access is unavailable, so the result wasn't copied.";
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(shareText);
+          copyStatus.textContent = "Copied your result to the clipboard.";
+        } catch {
+          copyStatus.textContent = "Unable to copy your result. Clipboard access may be unavailable or denied.";
+        }
+      });
 
       nextButton.addEventListener("click", () => {
         if (!answered) return;
