@@ -561,6 +561,19 @@
         }
       ];
 
+      function shuffleQuestions(previousOrder = []) {
+        const shuffled = [...questions];
+        for (let index = shuffled.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+        }
+        if (shuffled.length > 1 && shuffled.every((question, index) => question === previousOrder[index])) {
+          [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+        }
+        return shuffled;
+      }
+
+      let missionQuestions = shuffleQuestions();
       const questionCount = document.getElementById("question-count");
       const progressTrack = document.getElementById("progress-track");
       const progressFill = document.getElementById("progress-fill");
@@ -581,11 +594,11 @@
       let answered = false;
 
       function renderQuestion() {
-        const item = questions[current];
+        const item = missionQuestions[current];
         answered = false;
-        questionCount.textContent = `Question ${current + 1} of ${questions.length}`;
+        questionCount.textContent = `Question ${current + 1} of ${missionQuestions.length}`;
         progressTrack.setAttribute("aria-valuenow", String(current));
-        progressFill.style.width = `${(current / questions.length) * 100}%`;
+        progressFill.style.width = `${(current / missionQuestions.length) * 100}%`;
         category.textContent = item.category;
         questionTitle.textContent = item.question;
         feedback.textContent = "";
@@ -609,11 +622,11 @@
       function selectAnswer(selected) {
         if (answered) return;
         answered = true;
-        const item = questions[current];
+        const item = missionQuestions[current];
         const buttons = [...answers.querySelectorAll(".answer")];
         const isCorrect = selected === item.answer;
         progressTrack.setAttribute("aria-valuenow", String(current + 1));
-        progressFill.style.width = `${((current + 1) / questions.length) * 100}%`;
+        progressFill.style.width = `${((current + 1) / missionQuestions.length) * 100}%`;
 
         buttons.forEach((button, index) => {
           button.disabled = true;
@@ -633,19 +646,19 @@
         scoreDisplay.textContent = String(score);
         scoreFooter.textContent = String(score);
         nextButton.disabled = false;
-        nextButton.textContent = current === questions.length - 1 ? "See my results" : "Next question";
+        nextButton.textContent = current === missionQuestions.length - 1 ? "See my results" : "Next question";
       }
 
       function showResults() {
-        progressTrack.setAttribute("aria-valuenow", String(questions.length));
+        progressTrack.setAttribute("aria-valuenow", String(missionQuestions.length));
         progressFill.style.width = "100%";
-        document.getElementById("final-score").textContent = `${score} / ${questions.length}`;
+        document.getElementById("final-score").textContent = `${score} / ${missionQuestions.length}`;
         copyStatus.textContent = "";
 
         let emoji;
         let title;
         let copy;
-        if (score === questions.length) {
+        if (score === missionQuestions.length) {
           emoji = "🏆";
           title = "Out of this world!";
           copy = "A perfect mission! You really know your way around the cosmos.";
@@ -672,7 +685,7 @@
       }
 
       copyResultButton.addEventListener("click", async () => {
-        const shareText = `I scored ${score} out of ${questions.length} on Orbit Quiz!`;
+        const shareText = `I scored ${score} out of ${missionQuestions.length} on Orbit Quiz!`;
         if (!navigator.clipboard?.writeText) {
           copyStatus.textContent = "Clipboard access is unavailable, so the result wasn't copied.";
           return;
@@ -688,7 +701,7 @@
 
       nextButton.addEventListener("click", () => {
         if (!answered) return;
-        if (current < questions.length - 1) {
+        if (current < missionQuestions.length - 1) {
           current += 1;
           renderQuestion();
           questionTitle.focus?.();
@@ -698,6 +711,7 @@
       });
 
       document.getElementById("restart-button").addEventListener("click", () => {
+        missionQuestions = shuffleQuestions(missionQuestions);
         current = 0;
         score = 0;
         scoreDisplay.textContent = "0";
